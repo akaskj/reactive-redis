@@ -8,17 +8,22 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.connection.stream.StringRecord;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import javax.annotation.PostConstruct;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @RestController
 public class StreamController {
@@ -38,7 +43,9 @@ public class StreamController {
 
     ConcurrentLinkedQueue<Map.Entry<String,String>> publisherQueue = new ConcurrentLinkedQueue<>();
 
-    Map<String, String> pollQueue = new ConcurrentHashMap<>();
+    public static Map<String, String> pollQueue = new ConcurrentHashMap<>();
+
+
 
 
 
@@ -48,6 +55,8 @@ public class StreamController {
     boolean addingToPublisher = false;
 
 
+
+
     public void addItemToPollQueue(String stream) {
         if(!pollQueue.containsKey(stream)) {
             // add stream to start getting messages from the start
@@ -55,59 +64,111 @@ public class StreamController {
         }
     }
 
+    @GetMapping("/start-polling-multi-streams")
+    public boolean multiPolling(String streamName) {
 
-    public void pollStreams() {
+        System.out.println("start polling " + streamName);
 
-        // infinite loop to poll all the streams
-        while(true) {
-
-//            System.out.println("inside while-------------" + pollQueue.size());
-
-            for (Map.Entry<String, String> stream : pollQueue.entrySet()) {
-
-//                System.out.println("inside for");
-
-                String streamKey = stream.getKey();
-                String readOffsetId = stream.getValue();
-
-                List<MapRecord<String, Object, Object>> read = redisTemplate.opsForStream().read(StreamOffset.create(streamKey, ReadOffset.from(readOffsetId)));
-
-                if (read.size() != 0) {
-
-                System.out.println("----------" + read.size());
-
-                    pollQueue.put(streamKey, read.get(read.size()-1).getId().getValue());
-                    read.stream().forEach(t -> {
-
-                        System.out.println("inside-do-on-next");
-                        System.out.println(t.getId());
-                        System.out.println("Stream: " + t.getStream());
-                        System.out.println("Body: " + t.getValue());
-
-                    });
-                }
+        Map test = (Map) CoffeeLoader.myRoundRobin.next();
+        test.put(streamName, "0");
 
 
+//        addItemToPollQueue(streamName);
+//        addItemToPollQueue("my-stream-two");
 
+        return true;
+//        addItemToPollQueue("my-stream-three");
+//        addItemToPollQueue("my-stream-four");
 
-
-            }
-        }
+        //pollStreams();
 
     }
 
 
     @GetMapping("/start-polling-streams")
-    public void startPolling() {
+    public boolean startPolling(String streamName) {
 
-        addItemToPollQueue("my-stream-one");
-        addItemToPollQueue("my-stream-two");
+        System.out.println("start polling " + streamName);
+
+        addItemToPollQueue(streamName);
+//        addItemToPollQueue("my-stream-two");
+
+        return true;
 //        addItemToPollQueue("my-stream-three");
 //        addItemToPollQueue("my-stream-four");
 
-        pollStreams();
+        //pollStreams();
 
     }
+
+    @GetMapping("/start-polling-other")
+    public boolean polling() {
+
+        System.out.println("start polling");
+
+        addItemToPollQueue("my-stream-three");
+
+        return true;
+//        addItemToPollQueue("my-stream-three");
+//        addItemToPollQueue("my-stream-four");
+
+        //pollStreams();
+
+    }
+
+
+//    @PostConstruct
+//    public void pollStreams() {
+//
+//        PollStream pollStream = new PollStream();
+//        Thread thread = new Thread(pollStream);
+//        thread.start();
+//
+//        System.out.println("started thread for polling");
+//
+
+
+
+
+//        // infinite loop to poll all the streams
+//        while(true) {
+//
+////            System.out.println("inside while-------------" + pollQueue.size());
+//
+//            for (Map.Entry<String, String> stream : pollQueue.entrySet()) {
+//
+////                System.out.println("inside for");
+//
+//                String streamKey = stream.getKey();
+//                String readOffsetId = stream.getValue();
+//
+//                List<MapRecord<String, Object, Object>> read = redisTemplate.opsForStream().read(StreamOffset.create(streamKey, ReadOffset.from(readOffsetId)));
+//
+//                if (read.size() != 0) {
+//
+//                System.out.println("----------" + read.size());
+//
+//                    pollQueue.put(streamKey, read.get(read.size()-1).getId().getValue());
+//                    read.stream().forEach(t -> {
+//
+//                        System.out.println("inside-do-on-next");
+//                        System.out.println(t.getId());
+//                        System.out.println("Stream: " + t.getStream());
+//                        System.out.println("Body: " + t.getValue());
+//
+//                    });
+//                }
+//
+//
+//
+//
+//
+//            }
+//        }
+
+//    }
+
+
 
 //    public void publishStreamData() {
 //
